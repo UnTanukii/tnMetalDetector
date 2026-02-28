@@ -120,11 +120,11 @@ tnFunctions.CheckZone = function()
                     tnFunctions.StopDetection()
                 end
 
-                local _, currentWeaponHash = GetCurrentPedWeapon(playerPed)
+                --[[local _, currentWeaponHash = GetCurrentPedWeapon(playerPed)
                 if currentWeaponHash ~= GetHashKey('WEAPON_UNARMED') then 
                     tnClient.Notify('error', _S['switch_weapon'], 'weapon_change')
                     tnFunctions.StopDetection()
-                end
+                end--]]
 
                 Citizen.Wait(1000)
             end

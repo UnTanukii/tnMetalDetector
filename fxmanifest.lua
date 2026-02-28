@@ -6,13 +6,13 @@ description 'Simple metal detector script (dsc.gg/untanukii)'
 version '1.0.0'
 
 client_scripts {
-    'client/*.lua',
-    'config.lua'
+    'config.lua',
+    'client/*.lua'
 }
 
 server_scripts {
-    'server/*.lua',
-    'config.lua'
+    'config.lua',
+    'server/*.lua'
 }
 
 ui_page 'html/index.html'
