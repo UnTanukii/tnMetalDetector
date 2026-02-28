@@ -1,4 +1,4 @@
-ESX = exports['es_extended']:getSharedObject()
+ESX = tnClient.GetESX()
 
 ----------------------------
 -- Values
@@ -12,6 +12,7 @@ local treasureCoords = nil
 local detectorObject = nil
 --
 local tnFunctions = {}
+local _S = tnConfig.strings
 
 ----------------------------
 -- Events
@@ -23,7 +24,7 @@ end)
 
 RegisterNetEvent('tnMetalDetector:client:notify')
 AddEventHandler('tnMetalDetector:client:notify', function(type, message, cooldownId)
-    tnFunctions.Notify(type, message, cooldownId)
+    tnClient.Notify(type, message, cooldownId)
 end)
 
 RegisterNetEvent('onResourceStop', function(resourceName)
@@ -39,22 +40,6 @@ end)
 ----------------------------
 -- Utils Functions
 ----------------------------
-local lastNotifTime = {}
-tnFunctions.Notify = function(type, message, cooldownId)
-    if cooldownId then 
-        local currentTime = GetGameTimer()
-        if currentTime - (lastNotifTime[cooldownId] or 0) < 5000.0 then 
-            return 
-        end
-        lastNotifTime[cooldownId] = currentTime
-    end
-    ESX.ShowNotification(message, type)
-end
-
-tnFunctions.HelpNotify = function(message)
-    ESX.ShowHelpNotification(message)
-end
-
 tnFunctions.GenerateRandomCoords = function(center, radius)
     local offsetX = math.random(0, radius)
     local offsetY = math.random(0, radius)
@@ -88,7 +73,7 @@ tnFunctions.PlayBeep = function(type)
     SendNUIMessage({
         transactionType = 'playSound',
         transactionFile  = 'beep',
-        transactionVolume = tnConfig.SoundVolume
+        transactionVolume = tnConfig.soundVolume
     })
     lastSoundTime = currentTime
 end
@@ -102,7 +87,7 @@ tnFunctions.CheckZone = function()
     local playerCoords = GetEntityCoords(playerPed)
 
     local foundZone = false
-    for zoneId, zone in pairs(tnConfig.Zones) do 
+    for zoneId, zone in pairs(tnConfig.zones) do 
         local distance = #(playerCoords - zone.coords)
 
         if distance > 50.0 then 
@@ -111,7 +96,7 @@ tnFunctions.CheckZone = function()
         foundZone = true
 
         if isDetecting then 
-            tnFunctions.Notify('info', 'Vous avez arrêté la détection.', false)
+            tnClient.Notify('info', _S['stop_detection'], false)
             tnFunctions.StopDetection()
             return 
         end
@@ -124,9 +109,9 @@ tnFunctions.CheckZone = function()
                 local currentDistance = #(currentCoords - zone.coords)
 
                 if currentDistance > zone.radius - 7.0 then 
-                    tnFunctions.Notify('error', 'Vous êtes entrain de sortir de la zone de détection.', 'near_exit')
+                    tnClient.Notify('error', _S['near_exit_zone'], 'near_exit')
                     if currentDistance > zone.radius then 
-                        tnFunctions.Notify('error', 'Vous êtes trop loin de la zone de détection, le détecteur va s\'éteindre.')
+                        tnClient.Notify('error', _S['exit_zone'])
                         tnFunctions.StopDetection()
                     end
                 end
@@ -137,7 +122,7 @@ tnFunctions.CheckZone = function()
 
                 local _, currentWeaponHash = GetCurrentPedWeapon(playerPed)
                 if currentWeaponHash ~= GetHashKey('WEAPON_UNARMED') then 
-                    tnFunctions.Notify('error', 'Vous avez changé d\'arme, le détecteur va s\'éteindre.', 'weapon_change')
+                    tnClient.Notify('error', _S['switch_weapon'], 'weapon_change')
                     tnFunctions.StopDetection()
                 end
 
@@ -148,7 +133,7 @@ tnFunctions.CheckZone = function()
     end
 
     if not foundZone then 
-        tnFunctions.Notify('error', 'Vous n\'êtes pas dans une zone de détection.', false)
+        tnClient.Notify('error', _S['not_in_zone'], false)
     end
 end
 
@@ -158,9 +143,9 @@ tnFunctions.StartDetection = function(zoneId, zone)
     local playerCoords = GetEntityCoords(playerPed)
 
     -- Animation & Prop
-    tnFunctions.RequestAnimDict('mini@golf')
-    TaskPlayAnim(playerPed, 'mini@golf', 'iron_idle_b', 8.0, -8.0, -1, 49, 0, false, false, false)
-    detectorObject = CreateObject(GetHashKey(tnConfig.DetectorObject), playerCoords.x, playerCoords.y, playerCoords.z + 0.2, true, false, false)
+    tnFunctions.RequestAnimDict(tnConfig.detector.animation[1])
+    TaskPlayAnim(playerPed, tnConfig.detector.animation[1], tnConfig.detector.animation[2], 8.0, -8.0, -1, 49, 0, false, false, false)
+    detectorObject = CreateObject(GetHashKey(tnConfig.detector.prop), playerCoords.x, playerCoords.y, playerCoords.z + 0.2, true, false, false)
     AttachEntityToEntity(detectorObject, playerPed, GetPedBoneIndex(playerPed, 57005), 0.125, 0.04, 0.0, -90.0, 150.0, 44.0, true, true, false, true, 1, true)
 
     isDetecting = true
@@ -194,7 +179,7 @@ tnFunctions.StartDetection = function(zoneId, zone)
                 tnFunctions.PlayBeep('beep_very_close')
             else 
                 tnFunctions.PlayBeep('beep_found')
-                tnFunctions.HelpNotify('Appuyez sur ~INPUT_CONTEXT~ pour commencer à creuser.')
+                tnClient.HelpNotify(_S['press_to_dig'])
 
                 if IsControlJustPressed(0, 51) then 
                     hasFound = true 
@@ -225,13 +210,13 @@ tnFunctions.StopDetection = function()
     end
 
     if hasFound then 
-        TaskStartScenarioInPlace(playerPed, 'WORLD_HUMAN_GARDENER_PLANT', 0, true)
+        TaskStartScenarioInPlace(playerPed, tnConfig.detector.scenario, 0, true)
 
         FreezeEntityPosition(playerPed, true)
 
-        exports['t0sic_loadingbar']:StartDelayedFunction('Fouille...', tnConfig.DiggingTime)
+        tnClient.ProgressBar(_S['digging'], tnConfig.diggingTime)
 
-        Citizen.Wait(tnConfig.DiggingTime)
+        Citizen.Wait(tnConfig.diggingTime)
         ClearPedTasks(playerPed)
         FreezeEntityPosition(playerPed, false)
 
