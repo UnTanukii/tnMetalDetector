@@ -2,7 +2,8 @@ fx_version 'adamant'
 game 'gta5'
 
 author 'untanukii'
-description 'dsc.gg/untanukii'
+description 'Simple metal detector script (dsc.gg/untanukii)'
+version '1.0.0'
 
 client_scripts {
     'client/*.lua',
